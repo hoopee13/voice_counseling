@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>마음 상담소</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;600&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0e11;
+      --surface: #1a1820;
+      --surface2: #221f2a;
+      --accent: #c8a96e;
+      --accent2: #e8c99e;
+      --text: #f0ece4;
+      --text2: #a09890;
+      --text3: #665e58;
+      --user-bubble: #2a2340;
+      --ai-bubble: #1e1c24;
+      --border: rgba(200,169,110,0.15);
+      --glow: rgba(200,169,110,0.08);
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Ambient background */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -30%;
+      left: -20%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse, rgba(120,80,180,0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -20%;
+      right: -20%;
+      width: 60%;
+      height: 60%;
+      background: radial-gradient(ellipse, rgba(200,169,110,0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Header */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 1.2rem 1.5rem 1rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(15,14,17,0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .logo-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    header h1 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--accent2);
+      letter-spacing: 0.08em;
+    }
+
+    header .subtitle {
+      font-size: 11px;
+      color: var(--text3);
+      margin-top: 1px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Chat area */
+    .chat-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      position: relative;
+      z-index: 1;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .chat-area::-webkit-scrollbar { display: none; }
+
+    /* Welcome state */
+    .welcome {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      gap: 0.8rem;
+    }
+
+    .welcome-icon {
+      font-size: 40px;
+      opacity: 0.6;
+      margin-bottom: 0.5rem;
+    }
+
+    .welcome h2 {
+      font-family: 'Noto Serif KR', serif;
+      font-size: 20px;
+      font-weight: 400;
+      color: var(--accent2);
+    }
+
+    .welcome p {
+      font-size: 14px;
+      color: var(--text3);
+      line-height: 1.8;
+      max-width: 260px;
+    }
+
+    /* Message bubbles */
+    .msg-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      animation: fadeUp 0.3s ease;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-label {
+      font-size: 11px;
+      color: var(--text3);
+      padding: 0 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .msg-group.user .msg-label { text-align: right; }
+
+    .bubble {
+      padding: 12px 16px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 88%;
+      word-break: keep-all;
+    }
+
+    .msg-group.user { align-items: flex-end; }
+    .msg-group.user .bubble {
+      background: var(--user-bubble);
+      border: 1px solid rgba(140,120,200,0.2);
+      border-bottom-right-radius: 5px;
+      color: #d4ccee;
+    }
+
+    .msg-group.ai { align-items: flex-start; }
+    .msg-group.ai .bubble {
+      background: var(--ai-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 5px;
+      color: var(--text);
+    }
+
+    /* Typing indicator */
+    .typing-bubble {
+      background: var(--ai-bubble);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      border-bottom-left-radius: 5px;
+      padding: 14px 18px;
+      display: none;
+      gap: 5px;
+      align-items: center;
+      width: fit-content;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .typing-bubble.show { display: flex; }
+
+    .dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      opacity: 0.4;
+      animation: blink 1.2s infinite;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+      40% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Bottom controls */
+    .controls {
+      position: relative;
+      z-index: 10;
+      padding: 1rem 1.5rem 1.5rem;
+      padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+      background: rgba(15,14,17,0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .status-text {
+      font-size: 13px;
+      color: var(--text3);
+      letter-spacing: 0.03em;
+      min-height: 18px;
+      text-align: center;
+    }
+
+    .status-text.active { color: var(--accent); }
+
+    /* Mic button */
+    .mic-wrap {
+      position: relative;
+    }
+
+    .mic-ring {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 1.5px solid var(--accent);
+      opacity: 0;
+      transform: scale(0.9);
+      pointer-events: none;
+    }
+
+    .mic-ring.pulse {
+      animation: ring 1.5s ease-out infinite;
+    }
+
+    @keyframes ring {
+      0% { opacity: 0.5; transform: scale(0.95); }
+      100% { opacity: 0; transform: scale(1.4); }
+    }
+
+    .mic-btn {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 1.5px solid var(--accent);
+      background: var(--surface2);
+      cursor: pointer;
+      font-size: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      position: relative;
+      z-index: 2;
+      box-shadow: 0 0 20px rgba(200,169,110,0.1);
+    }
+
+    .mic-btn:active { transform: scale(0.93); }
+
+    .mic-btn.listening {
+      background: rgba(200,169,110,0.15);
+      border-color: var(--accent2);
+      box-shadow: 0 0 30px rgba(200,169,110,0.2);
+    }
+
+    .mic-btn.thinking {
+      border-color: rgba(140,120,200,0.5);
+      box-shadow: 0 0 20px rgba(140,120,200,0.15);
+      animation: spin-glow 2s linear infinite;
+    }
+
+    @keyframes spin-glow {
+      0%,100% { box-shadow: 0 0 20px rgba(140,120,200,0.15); }
+      50% { box-shadow: 0 0 35px rgba(140,120,200,0.25); }
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--text3);
+      text-align: center;
+    }
+
+    /* Speaking indicator */
+    .speaking-bar {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+      height: 16px;
+    }
+
+    .bar {
+      width: 3px;
+      border-radius: 2px;
+      background: var(--accent);
+      opacity: 0;
+      transform-origin: bottom;
+    }
+
+    .speaking-bar.active .bar {
+      opacity: 0.8;
+      animation: wave 0.8s ease-in-out infinite;
+    }
+
+    .bar:nth-child(1) { animation-delay: 0s; height: 6px; }
+    .bar:nth-child(2) { animation-delay: 0.1s; height: 10px; }
+    .bar:nth-child(3) { animation-delay: 0.2s; height: 14px; }
+    .bar:nth-child(4) { animation-delay: 0.1s; height: 10px; }
+    .bar:nth-child(5) { animation-delay: 0s; height: 6px; }
+
+    @keyframes wave {
+      0%, 100% { transform: scaleY(0.4); }
+      50% { transform: scaleY(1); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">✦</div>
+  <div>
+    <h1>마음 상담소</h1>
+    <div class="subtitle">AI 심리 상담</div>
+  </div>
+</header>
+
+<div class="chat-area" id="chatArea">
+  <div class="welcome" id="welcome">
+    <div class="welcome-icon">🕯️</div>
+    <h2>안녕하세요</h2>
+    <p>무슨 일이 있으셨나요?<br>편하게 말씀해 주세요.<br>조용히 귀 기울여 드릴게요.</p>
+  </div>
+  <div class="typing-bubble" id="typingBubble">
+    <div class="dot"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <div style="display:flex; align-items:center; gap:8px;">
+    <div class="speaking-bar" id="speakingBar">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div>
+    </div>
+    <div class="status-text" id="statusText">아래 버튼을 눌러 말씀해 주세요</div>
+    <div class="speaking-bar" id="speakingBar2">
+      <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+      <div class="bar"></div><div class="bar"></div>
+    </div>
+  </div>
+
+  <div class="mic-wrap">
+    <div class="mic-ring" id="micRing"></div>
+    <button class="mic-btn" id="micBtn" ontouchstart="handleTouch()" onclick="toggleListen()">🎤</button>
+  </div>
+
+  <div class="hint" id="hint">누르고 말하기 · Chrome 권장</div>
+</div>
+
+<script>
+let recognition = null;
+let isListening = false;
+let isSpeaking = false;
+let conversationHistory = [];
+
+function initRecognition() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setStatus('음성인식 미지원 — 텍스트 입력 모드로 전환됩니다', false);
+    showTextInput();
+    return null;
+  }
+  const r = new SR();
+  r.lang = 'ko-KR';
+  r.continuous = false;
+  r.interimResults = false;
+
+  r.onresult = async (e) => {
+    const text = e.results[0][0].transcript;
+    setListening(false);
+    addMessage('user', text);
+    await askAI(text);
+  };
+
+  r.onerror = (e) => {
+    setListening(false);
+    if (e.error === 'no-speech') setStatus('소리가 없어서 다시 시도해요', false);
+    else if (e.error === 'not-allowed') setStatus('마이크 권한을 허용해 주세요', false);
+    else setStatus('다시 눌러 말씀해 주세요', false);
+  };
+
+  r.onend = () => { if (isListening) setListening(false); };
+  return r;
+}
+
+function handleTouch() {
+  // Prevent double-fire on mobile
+}
+
+function toggleListen() {
+  if (isSpeaking) {
+    speechSynthesis.cancel();
+    setSpeaking(false);
+  }
+
+  if (!recognition) recognition = initRecognition();
+  if (!recognition) return;
+
+  if (isListening) {
+    recognition.stop();
+    setListening(false);
+  } else {
+    try {
+      recognition.start();
+      setListening(true);
+    } catch(e) {
+      // Already started — stop and restart
+      try { recognition.stop(); } catch(_) {}
+      setTimeout(() => {
+        try { recognition.start(); setListening(true); } catch(_) {}
+      }, 300);
+    }
+  }
+}
+
+function setListening(val) {
+  isListening = val;
+  const btn = document.getElementById('micBtn');
+  const ring = document.getElementById('micRing');
+  btn.classList.toggle('listening', val);
+  btn.classList.remove('thinking');
+  ring.classList.toggle('pulse', val);
+  btn.textContent = val ? '⏹' : '🎤';
+  if (val) setStatus('듣고 있어요...', true);
+  else if (!isSpeaking) setStatus('아래 버튼을 눌러 말씀해 주세요', false);
+}
+
+function setThinking(val) {
+  const btn = document.getElementById('micBtn');
+  const typing = document.getElementById('typingBubble');
+  btn.classList.toggle('thinking', val);
+  btn.classList.remove('listening');
+  btn.textContent = val ? '💭' : '🎤';
+  typing.classList.toggle('show', val);
+  if (val) setStatus('생각 중...', true);
+  scrollBottom();
+}
+
+function setSpeaking(val) {
+  isSpeaking = val;
+  document.getElementById('speakingBar').classList.toggle('active', val);
+  document.getElementById('speakingBar2').classList.toggle('active', val);
+  if (val) setStatus('말하는 중...', true);
+  else setStatus('아래 버튼을 눌러 말씀해 주세요', false);
+  const btn = document.getElementById('micBtn');
+  if (val) btn.textContent = '🔊';
+  else { btn.textContent = '🎤'; btn.classList.remove('thinking'); }
+}
+
+function setStatus(msg, active) {
+  const el = document.getElementById('statusText');
+  el.textContent = msg;
+  el.classList.toggle('active', !!active);
+}
+
+function addMessage(role, text) {
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  const typing = document.getElementById('typingBubble');
+  const area = document.getElementById('chatArea');
+
+  const group = document.createElement('div');
+  group.className = 'msg-group ' + role;
+
+  const label = document.createElement('div');
+  label.className = 'msg-label';
+  label.textContent = role === 'user' ? '나' : '상담사';
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble';
+  bubble.textContent = text;
+
+  group.appendChild(label);
+  group.appendChild(bubble);
+  area.insertBefore(group, typing);
+  scrollBottom();
+}
+
+function scrollBottom() {
+  const area = document.getElementById('chatArea');
+  setTimeout(() => area.scrollTop = area.scrollHeight, 50);
+}
+
+async function askAI(userText) {
+  setThinking(true);
+  conversationHistory.push({ role: 'user', content: userText });
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: '당신은 따뜻하고 공감 능력이 뛰어난 심리 상담사입니다. 사용자의 말을 진지하게 듣고, 공감하며 진심 어린 위로와 조언을 3~4문장 이내로 해주세요. 말하듯이 자연스럽게 답해주세요.',
+        messages: conversationHistory
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '죄송해요, 다시 한 번 말씀해 주세요.';
+    conversationHistory.push({ role: 'assistant', content: reply });
+
+    setThinking(false);
+    addMessage('ai', reply);
+    speak(reply);
+  } catch(e) {
+    setThinking(false);
+    addMessage('ai', '네트워크 오류가 발생했어요. 잠시 후 다시 시도해 주세요.');
+    setSpeaking(false);
+  }
+}
+
+function speak(text) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+
+  // Wait for voices on mobile
+  function doSpeak() {
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ko-KR';
+    u.rate = 0.92;
+    u.pitch = 1.0;
+
+    // Pick Korean voice if available
+    const voices = speechSynthesis.getVoices();
+    const koVoice = voices.find(v => v.lang.startsWith('ko'));
+    if (koVoice) u.voice = koVoice;
+
+    u.onstart = () => setSpeaking(true);
+    u.onend = () => setSpeaking(false);
+    u.onerror = () => setSpeaking(false);
+    speechSynthesis.speak(u);
+  }
+
+  if (speechSynthesis.getVoices().length > 0) {
+    doSpeak();
+  } else {
+    speechSynthesis.onvoiceschanged = doSpeak;
+    setTimeout(doSpeak, 500); // fallback
+  }
+}
+
+function showTextInput() {
+  const controls = document.querySelector('.controls');
+  controls.innerHTML = `
+    <div style="display:flex;gap:8px;width:100%;max-width:480px;">
+      <input id="txtIn" type="text" placeholder="메시지를 입력하세요..."
+        style="flex:1;padding:12px 16px;border-radius:24px;border:1px solid rgba(200,169,110,0.3);
+        background:#1a1820;color:#f0ece4;font-size:15px;font-family:inherit;outline:none;"
+        onkeydown="if(event.key==='Enter')sendText()">
+      <button onclick="sendText()" style="padding:12px 18px;border-radius:24px;border:1px solid rgba(200,169,110,0.4);
+        background:#221f2a;color:#c8a96e;font-size:15px;cursor:pointer;font-family:inherit;">
+        전송
+      </button>
+    </div>
+  `;
+}
+
+async function sendText() {
+  const inp = document.getElementById('txtIn');
+  const text = inp?.value?.trim();
+  if (!text) return;
+  inp.value = '';
+  addMessage('user', text);
+  await askAI(text);
+}
+</script>
+</body>
+</html>
